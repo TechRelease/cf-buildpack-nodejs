@@ -82,6 +82,19 @@ if [ ! -f "$build_dir/.npmrc" ]; then
   echo "ca=" > "$build_dir/.npmrc"
 fi
 
+# Install grunt and bower
+(
+    # get the env vars
+    if [ -d "$env_dir" ]; then
+      status "Exporting config vars to environment"
+      export_env_dir $env_dir
+    fi
+
+    # make sure that grunt and grunt-cli are installed locally
+    npm install -g bower grunt-cli
+
+)
+
 # Scope config var availability only to `npm install`
 (
   if [ -d "$env_dir" ]; then
@@ -91,7 +104,7 @@ fi
 
   status "Installing dependencies"
   # Make npm output to STDOUT instead of its default STDERR
-  npm install --userconfig $build_dir/.npmrc 2>&1 | indent
+  npm install  --unsafe-perm --userconfig $build_dir/.npmrc 2>&1 | indent
 )
 
 # Persist goodies like node-version in the slug
@@ -138,23 +151,6 @@ fi
 status "Building runtime environment"
 mkdir -p $build_dir/.profile.d
 echo "export PATH=\"\$HOME/vendor/node/bin:\$HOME/bin:\$HOME/node_modules/.bin:\$PATH\";" > $build_dir/.profile.d/nodejs.sh
-
-# Check and run Grunt
-(
-    # get the env vars
-    if [ -d "$env_dir" ]; then
-      status "Exporting config vars to environment"
-      export_env_dir $env_dir
-    fi
-
-    # make sure that grunt and grunt-cli are installed locally
-    npm install -g grunt-cli
-    npm install grunt
-
-    status "Pruning dev dependencies"
-    npm prune --production 2>&1 | indent
-
-)
 
 # Post package.json to nomnom service
 # Use a subshell so failures won't break the build.
